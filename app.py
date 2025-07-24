@@ -146,7 +146,7 @@ for thickness, config in thickness_config.items():
         "Thickness (mm)": thickness,
         "Total Sheets": total_sheets,
         "Total Pieces": len(original_dims),
-        "Approx Waste %": f"{(sum([(ply_width * ply_height - sum(w * h for x, y, w, h, _, _ in s))]) / (ply_width * ply_height)) * 100:.2f}" if sheets else "0.00"
+        "Approx Waste %": f"{(sum([(ply_width * ply_height - sum(w * h for x, y, w, h, _, _ in rects)) for rects in sheets.values()]) / (ply_width * ply_height * len(sheets)) * 100):.2f}" if sheets else "0.00"
     })
 
 pdf.close()
