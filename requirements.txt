@@ -1,0 +1,4 @@
+streamlit
+matplotlib
+rectpack
+pandas
