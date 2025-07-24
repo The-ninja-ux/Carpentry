@@ -157,7 +157,10 @@ st.table(pd.DataFrame(results_summary))
 
 st.subheader("📸 Cutting Layouts")
 for thickness, sheet_id, waste_percent, buf in image_buffers:
-    st.image(buf, caption=f"{thickness}mm Panel — Sheet {sheet_id} | Waste: {waste_percent:.2f}%", use_column_width=True)
+    # Inside your image rendering loop:
+    caption = f"{thickness}mm Panel — Sheet {sheet_id} | Waste: {waste_percent:.2f}%"
+    st.image(buf, caption=caption, width=600)
+
 
 st.subheader("📥 Download PDF")
 st.download_button("Download Cutting Plan PDF", data=open(temp_pdf.name, "rb"), file_name="cutting_plan.pdf")
