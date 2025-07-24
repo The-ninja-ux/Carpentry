@@ -156,10 +156,45 @@ st.subheader("📊 Cutting Summary")
 st.table(pd.DataFrame(results_summary))
 
 st.subheader("📸 Cutting Layouts")
+
+# Group images by thickness
+grouped_images = defaultdict(list)
 for thickness, sheet_id, waste_percent, buf in image_buffers:
-    # Inside your image rendering loop:
-    caption = f"{thickness}mm Panel — Sheet {sheet_id} | Waste: {waste_percent:.2f}%"
-    st.image(buf, caption=caption, width=600)
+    grouped_images[thickness].append((sheet_id, waste_percent, buf))
+
+# Layout section with vertical scroll and side-by-side thumbnails
+for thickness in sorted(grouped_images.keys()):
+    st.markdown(f"**{thickness}mm Panel Sheets**")
+    with st.container():
+        # Create a scrollable horizontal section
+        scroll_style = """
+        <style>
+        .scroll-wrapper {
+            display: flex;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+        }
+        .scroll-wrapper > div {
+            margin-right: 16px;
+        }
+        </style>
+        """
+        st.markdown(scroll_style, unsafe_allow_html=True)
+        scroll_html = '<div class="scroll-wrapper">'
+        for sheet_id, waste_percent, buf in grouped_images[thickness]:
+            encoded = buf.getvalue()
+            encoded_image = f'data:image/png;base64,{encoded.hex()}'
+            scroll_html += f'''
+                <div>
+                    <img src="data:image/png;base64,{encoded.encode("base64").decode()}" style="width: 300px; border: 1px solid #ccc;" />
+                    <div style="text-align: center; font-size: 12px; margin-top: 4px;">
+                        Sheet {sheet_id} | Waste: {waste_percent:.2f}%
+                    </div>
+                </div>
+            '''
+        scroll_html += '</div>'
+        st.markdown(scroll_html, unsafe_allow_html=True)
+
 
 
 st.subheader("📥 Download PDF")
