@@ -8,6 +8,7 @@ from collections import defaultdict
 from io import BytesIO
 import tempfile
 import os
+import base64
 
 # === Streamlit Page Setup ===
 st.set_page_config(page_title="Cutting Plan Optimizer", layout="wide")
@@ -146,7 +147,7 @@ for thickness, config in thickness_config.items():
         "Thickness (mm)": thickness,
         "Total Sheets": total_sheets,
         "Total Pieces": len(original_dims),
-        "Approx Waste %": f"{(sum([(ply_width * ply_height - sum(w * h for x, y, w, h, _, _ in rects)) for rects in sheets.values()]) / (ply_width * ply_height * len(sheets)) * 100):.2f}" if sheets else "0.00"
+        "Approx Waste %": f"{waste_percent:.2f}"
     })
 
 pdf.close()
@@ -162,40 +163,41 @@ grouped_images = defaultdict(list)
 for thickness, sheet_id, waste_percent, buf in image_buffers:
     grouped_images[thickness].append((sheet_id, waste_percent, buf))
 
-# Layout section with vertical scroll and side-by-side thumbnails
+# Show scrollable rows with images side-by-side
+scroll_style = """
+<style>
+.scroll-wrapper {
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem 0;
+}
+.scroll-wrapper > div {
+    margin-right: 16px;
+    text-align: center;
+}
+img.sheet-img {
+    width: 300px;
+    border: 1px solid #ccc;
+}
+</style>
+"""
+st.markdown(scroll_style, unsafe_allow_html=True)
+
 for thickness in sorted(grouped_images.keys()):
     st.markdown(f"**{thickness}mm Panel Sheets**")
-    with st.container():
-        # Create a scrollable horizontal section
-        scroll_style = """
-        <style>
-        .scroll-wrapper {
-            display: flex;
-            overflow-x: auto;
-            padding-bottom: 1rem;
-        }
-        .scroll-wrapper > div {
-            margin-right: 16px;
-        }
-        </style>
-        """
-        st.markdown(scroll_style, unsafe_allow_html=True)
-        scroll_html = '<div class="scroll-wrapper">'
-        for sheet_id, waste_percent, buf in grouped_images[thickness]:
-            encoded = buf.getvalue()
-            encoded_image = f'data:image/png;base64,{encoded.hex()}'
-            scroll_html += f'''
-                <div>
-                    <img src="data:image/png;base64,{encoded.encode("base64").decode()}" style="width: 300px; border: 1px solid #ccc;" />
-                    <div style="text-align: center; font-size: 12px; margin-top: 4px;">
-                        Sheet {sheet_id} | Waste: {waste_percent:.2f}%
-                    </div>
+    scroll_html = '<div class="scroll-wrapper">'
+    for sheet_id, waste_percent, buf in grouped_images[thickness]:
+        encoded = base64.b64encode(buf.getvalue()).decode()
+        scroll_html += f'''
+            <div>
+                <img class="sheet-img" src="data:image/png;base64,{encoded}" />
+                <div style="font-size: 12px; margin-top: 4px;">
+                    Sheet {sheet_id} | Waste: {waste_percent:.2f}%
                 </div>
-            '''
-        scroll_html += '</div>'
-        st.markdown(scroll_html, unsafe_allow_html=True)
-
-
+            </div>
+        '''
+    scroll_html += '</div>'
+    st.markdown(scroll_html, unsafe_allow_html=True)
 
 st.subheader("📥 Download PDF")
 st.download_button("Download Cutting Plan PDF", data=open(temp_pdf.name, "rb"), file_name="cutting_plan.pdf")
